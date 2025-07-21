@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GitHub Q&A with Google AI</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa, #e2e8f0);
+      color: #1a202c;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+      color: #2b6cb0;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      padding: 20px;
+      max-width: 600px;
+      width: 100%;
+      margin-bottom: 30px;
+      transition: transform 0.2s;
+    }
+    .card:hover { transform: translateY(-2px); }
+    .card h2 { margin-top: 0; color: #2d3748; }
+    input[type=text], textarea {
+      width: 100%;
+      padding: 12px 14px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #cbd5e0;
+      font-size: 16px;
+      resize: vertical;
+    }
+    button {
+      background-color: #3182ce;
+      color: white;
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background-color: #2c5282; }
+    .status, .answer {
+      margin-top: 10px;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+    .status { color: #4a5568; }
+    .answer {
+      background: #f7fafc;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      color: #2d3748;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>GitHub Q&A with Google AI</h1>
+
+  <div class="card">
+    <h2>Process Repository</h2>
+    <input id="repoUrl" type="text" placeholder="Enter GitHub repo URL (e.g. https://github.com/user/repo)" />
+    <button onclick="processRepo()">Process Repo</button>
+    <div class="status" id="processStatus"></div>
+  </div>
+
+  <div class="card">
+    <h2>Ask a Question</h2>
+    <textarea id="question" rows="4" placeholder="Enter your question..."></textarea>
+    <button onclick="askQuestion()">Ask</button>
+    <div class="status answer" id="answerBox"></div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000"; 
+    let dbName = "";
+
+    async function processRepo() {
+      const repoUrl = document.getElementById("repoUrl").value.trim();
+      const status = document.getElementById("processStatus");
+      status.textContent = "Processing...";
+      if (!repoUrl) { status.textContent = "Enter a URL."; return; }
+      try {
+        const res = await fetch(`${API_BASE}/process_repo`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ git_url: repoUrl })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error");
+        status.textContent = data.message;
+        const parts = repoUrl.split("/");
+        dbName = parts[3] + "_" + parts[4].replace(".git", "");
+      } catch (err) {
+        status.textContent = "Error: " + err.message;
+      }
+    }
+
+    async function askQuestion() {
+      const q = document.getElementById("question").value.trim();
+      const ansBox = document.getElementById("answerBox");
+      if (!dbName) { ansBox.textContent = "Process a repo first."; return; }
+      if (!q) { ansBox.textContent = "Enter a question."; return; }
+      ansBox.textContent = "Loading answer...";
+      try {
+        const res = await fetch(`${API_BASE}/ask`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ db_name: dbName, question: q })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error");
+        ansBox.textContent = data.answer;
+      } catch (err) {
+        ansBox.textContent = "Error: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
+

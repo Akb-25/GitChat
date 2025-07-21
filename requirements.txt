@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-dotenv
+langchain-google-genai
+langchain
+chromadb
+GitPython
+beautifulsoup4
+unstructured
